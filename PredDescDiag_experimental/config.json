@@ -1,0 +1,6 @@
+{
+    "kpi_threshold": 11668.35,
+    "ratechange_threshold": 0.1,
+    "time_period": "12 months",
+    "groupby_columns": ["SUPPLIER"]
+}
