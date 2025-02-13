@@ -8,6 +8,9 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import LabelEncoder
 import json
 import ollama
+from app.utils import LLAMA_MODEL, DEEPSEEK_MODEL, QWEN_MODEL
+
+model_name = DEEPSEEK_MODEL
 
 class DescriptiveAnalysisService:
     def __init__(self, config_path):
@@ -70,14 +73,40 @@ class DescriptiveAnalysisService:
             summary["min_value"] = {"value": min_row[kpi_column], "month": min_row["MONTH"], "group": {col: min_row[col] for col in groupby_columns}}
             summary["max_value"] = {"value": max_row[kpi_column], "month": max_row["MONTH"], "group": {col: max_row[col] for col in groupby_columns}}
         else:
+            top_values = df[df["Above_Threshold"]][["MONTH"] + [kpi_column] + ["DATE"]]
+            top_values_sorted = top_values.sort_values(by=["DATE", kpi_column], ascending=[False, False]).head(10)
+            summary["top_10_values_above_threshold"] = top_values_sorted.to_dict(orient="records")
+            
+            top_rate_changes = df[df["Rate_Above_Threshold"]][["MONTH"] + ["Rate_Change"] + ["DATE"]]
+            top_rate_changes_sorted = top_rate_changes.sort_values(by=["DATE", "Rate_Change"], ascending=[False, False]).head(10)
+            summary["top_10_ratechange_above_threshold"] = top_rate_changes_sorted.to_dict(orient="records")
             summary["min_value"] = df[kpi_column].min()
             summary["max_value"] = df[kpi_column].max()
         
         return str(summary)
     
     def generate_explanation(self, result):
-        prompt = f"Analyze the following KPI results and provide a business explanation with inferences: {result}"
-        response = ollama.chat(model="llama3.2:1b", messages=[{"role": "user", "content": prompt}])
+        prompt = f"Analyze the following KPI results and provide a business explanation with inferences: {result}\n"
+        prompt += """
+        
+        INSTRUCTIONS:
+        - Do not think 
+        - Use the provided data only
+        - Do the month_name-year conversion for the date related data present in the results
+        - Do not use any other data
+        - Write the output exactly as shown below
+
+        OUTPUT FORMAT:
+        <output>
+            <overview>overview of the lates period above threshold</overview>
+            <periods>Overview of the periods exceeding the threshold</periods>
+            <ratechange-analysis>Rate change analysis</ratechange-analysis>
+            <year-on-year>Year on year analysis</year-on-year>
+            <min-max>Min-max analysis</min-max>
+        </output>
+        
+        """
+        response = ollama.chat(model=model_name, messages=[{"role": "user", "content": prompt}])
         return response["message"]["content"]
 
 
@@ -175,7 +204,7 @@ class DiagnosticAnalyticsService:
     
     def generate_explanation(self, result):
         prompt = f"Analyze the following KPI diagnostic results and provide a business explanation with inferences: {result}"
-        response = ollama.chat(model="llama3.2:1b", messages=[{"role": "user", "content": prompt}])
+        response = ollama.chat(model=model_name, messages=[{"role": "user", "content": prompt}])
         return response["message"]["content"]
 
 
@@ -227,5 +256,5 @@ class KPIForecastingService:
     
     def generate_explanation(self, result):
         prompt = f"Analyze the following KPI forecast results and provide a business explanation with inferences: {result}"
-        response = ollama.chat(model="llama3.2:1b", messages=[{"role": "user", "content": prompt}])
+        response = ollama.chat(model=model_name, messages=[{"role": "user", "content": prompt}])
         return response["message"]["content"]

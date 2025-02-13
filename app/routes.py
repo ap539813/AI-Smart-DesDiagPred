@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.services import DiagnosticAnalyticsService, KPIForecastingService, forecasting_analysis
+from app.services import DiagnosticAnalyticsService, KPIForecastingService
 from app.models import KPIAnalysisRequest, KPIAnalysisResponse, KPIForecastingAnalysisRequest
 from app.services import DescriptiveAnalysisService
 
